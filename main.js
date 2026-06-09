@@ -10,7 +10,7 @@ const AVAILABLE_TOOLS = {
 // const tools = [toOpenAITool(calculatorTool)];
 const tools = [calculatorTool];
 
-const messages = [{ role: "user", content: "請問50*3+10/2 ？" }];
+const messages = [{ role: "user", content: "請問10+5 * 2？" }];
 
 const askingSpinner = spinner("思考中...").start();
 

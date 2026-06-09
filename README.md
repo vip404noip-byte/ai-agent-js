@@ -35,4 +35,4 @@
 
 
 測試結果:
-toOpenAITool
+![alt text]({75A5FD27-C507-4A6D-948C-0FE39841B233}.png)

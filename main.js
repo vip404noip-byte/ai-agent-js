@@ -1,57 +1,34 @@
-import { client, DEFAULT_MODEL } from "./src/lib/openai.js";
-import { calculatorTool, getCalculate } from "./src/tools/calculate.js";
+import { input } from "@inquirer/prompts";
+import { searchCity } from "./src/lib/qdrant.js";
 import { spinner } from "./src/utils/spinner.js";
-import { toOpenAITool } from "./src/utils/func-tool.js";
 
-const AVAILABLE_TOOLS = {
-  get_calculate: getCalculate,
-};
+try {
+  while (true) {
+    const query = (
+      await input({ message: "請輸入要搜尋的城市內容：" })
+    ).trim();
 
-// const tools = [toOpenAITool(calculatorTool)];
-const tools = [calculatorTool];
+    if (query === "") continue;
+    if (query.toLowerCase() === "exit") {
+      console.log("再會~");
+      break;
+    }
 
-const messages = [{ role: "user", content: "請問10+5 * 2？" }];
+    const spin = spinner("搜尋中...").start();
+    const results = await searchCity(query, 3);
+    spin.stop();
 
-const askingSpinner = spinner("思考中...").start();
-
-let response = await client.chat.completions.create({
-  model: DEFAULT_MODEL,
-  messages,
-  tools,
-  tool_choice: "auto",
-});
-
-askingSpinner.stop();
-
-const message = response.choices[0].message;
-messages.push(message);
-
-if (message.tool_calls && message.tool_calls.length > 0) {
-  for (const toolCall of message.tool_calls) {
-    const fnName = toolCall.function.name;
-    const args = JSON.parse(toolCall.function.arguments);
-    console.log(`\n[呼叫 tool] ${fnName}(${JSON.stringify(args)})`);
-
-    const fn = AVAILABLE_TOOLS[fnName];
-    const result = await fn(args);
-
-    messages.push({
-      role: "tool",
-      tool_call_id: toolCall.id,
-      content: JSON.stringify(result),
-    });
+    for (const [i, r] of results.entries()) {
+      console.log(`- 城市：${r.name}（score: ${r.score.toFixed(4)}）`);
+      console.log(`  介紹：${r.content}\n`);
+      console.log(`   分數：${r.score.toFixed(3)}`);
+    }
+    console.log();
   }
-
-  const replySpinner = spinner("思考中...").start();
-
-  response = await client.chat.completions.create({
-    model: DEFAULT_MODEL,
-    messages,
-  });
-
-  replySpinner.stop();
-
-  console.log(response.choices[0].message.content);
-} else {
-  console.log(message.content);
+} catch (err) {
+  if (err.name === "ExitPromptError") {
+    console.log("\n再會~");
+  } else {
+    throw err;
+  }
 }
